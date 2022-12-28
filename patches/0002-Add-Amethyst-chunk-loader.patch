@@ -808,7 +808,7 @@ index d64930f9a95605c08dbe2fca7cecc1003be37e82..ca4ac703a88d7d7d3c45d572cf437b5d
              AdaptivePalette adaptivePalette = (AdaptivePalette) super.clone();
              adaptivePalette.palette = palette.clone();
 diff --git a/src/main/java/net/minestom/server/instance/palette/FlexiblePalette.java b/src/main/java/net/minestom/server/instance/palette/FlexiblePalette.java
-index f5b9b907b770d553b03c79ba3eb5bab0afb77909..7a4460061ec52a51c6191e9307e295521afa9634 100644
+index f5b9b907b770d553b03c79ba3eb5bab0afb77909..914608a40f731db8422688563dcfdbfbf1e5ad9f 100644
 --- a/src/main/java/net/minestom/server/instance/palette/FlexiblePalette.java
 +++ b/src/main/java/net/minestom/server/instance/palette/FlexiblePalette.java
 @@ -16,7 +16,7 @@ import static net.minestom.server.network.NetworkBuffer.*;
@@ -820,7 +820,7 @@ index f5b9b907b770d553b03c79ba3eb5bab0afb77909..7a4460061ec52a51c6191e9307e29552
      private static final ThreadLocal<int[]> WRITE_CACHE = ThreadLocal.withInitial(() -> new int[4096]);
  
      // Specific to this palette type
-@@ -45,6 +45,22 @@ final class FlexiblePalette implements SpecializedPalette, Cloneable {
+@@ -45,6 +45,21 @@ final class FlexiblePalette implements SpecializedPalette, Cloneable {
          this.values = new long[(maxSize() + valuesPerLong - 1) / valuesPerLong];
      }
  
@@ -829,11 +829,10 @@ index f5b9b907b770d553b03c79ba3eb5bab0afb77909..7a4460061ec52a51c6191e9307e29552
 +        this.bitsPerEntry = bitsPerEntry;
 +        this.paletteToValueList = paletteToValueList;
 +
-+        this.valueToPaletteMap = new Int2IntOpenHashMap(1);
-+        this.valueToPaletteMap.put(0, 0);
++        this.valueToPaletteMap = new Int2IntOpenHashMap(paletteToValueList.size());
 +        this.valueToPaletteMap.defaultReturnValue(-1);
 +        for (int i = 0; i < paletteToValueList.size(); i++) {
-+            valueToPaletteMap.put(i, paletteToValueList.getInt(i));
++            valueToPaletteMap.put(paletteToValueList.getInt(i), i);
 +        }
 +
 +        this.count = count;
@@ -843,12 +842,12 @@ index f5b9b907b770d553b03c79ba3eb5bab0afb77909..7a4460061ec52a51c6191e9307e29552
      FlexiblePalette(AdaptivePalette adaptivePalette) {
          this(adaptivePalette, adaptivePalette.defaultBitsPerEntry);
      }
-@@ -193,6 +209,14 @@ final class FlexiblePalette implements SpecializedPalette, Cloneable {
+@@ -193,6 +208,14 @@ final class FlexiblePalette implements SpecializedPalette, Cloneable {
          return adaptivePalette.dimension();
      }
  
 +    public IntArrayList paletteToValueList() {
-+        return paletteToValueList; 
++        return paletteToValueList;
 +    }
 +
 +    public long[] values() {
@@ -858,18 +857,6 @@ index f5b9b907b770d553b03c79ba3eb5bab0afb77909..7a4460061ec52a51c6191e9307e29552
      @Override
      public @NotNull SpecializedPalette clone() {
          try {
-@@ -269,9 +293,9 @@ final class FlexiblePalette implements SpecializedPalette, Cloneable {
-     void resize(byte newBitsPerEntry) {
-         newBitsPerEntry = newBitsPerEntry > maxBitsPerEntry() ? 15 : newBitsPerEntry;
-         FlexiblePalette palette = new FlexiblePalette(adaptivePalette, newBitsPerEntry);
--        palette.paletteToValueList = paletteToValueList;
--        palette.valueToPaletteMap = valueToPaletteMap;
-         getAll(palette::set);
-+        paletteToValueList = palette.paletteToValueList;
-+        valueToPaletteMap = palette.valueToPaletteMap;
-         this.bitsPerEntry = palette.bitsPerEntry;
-         this.values = palette.values;
-         assert this.count == palette.count;
 diff --git a/src/main/java/net/minestom/server/instance/palette/Palette.java b/src/main/java/net/minestom/server/instance/palette/Palette.java
 index 93a14b9b3cbbfeee8463d671aefea9873e0ff443..6e466487cdee0614987698ee70ecd34b616391c7 100644
 --- a/src/main/java/net/minestom/server/instance/palette/Palette.java
